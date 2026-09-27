@@ -1,0 +1,1490 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>抛硬币模拟器 · 频率与概率</title>
+<style>
+:root{
+  --bg:#f3f6fb;
+  --card:#ffffff;
+  --line:#e4e9f2;
+  --line-soft:#eef2f8;
+  --txt:#1d2430;
+  --muted:#6a7688;
+  --blue:#2f6fed;
+  --blue-d:#1e51c0;
+  --blue-soft:#eaf1ff;
+  --red:#e0453a;
+  --red-soft:#fdeceb;
+  --gold:#e0a52c;
+  --green:#12a150;
+  --shadow:0 8px 28px rgba(23,43,84,.07);
+  --shadow-sm:0 2px 10px rgba(23,43,84,.06);
+  --r:16px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg);
+  color:var(--txt);
+  font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:15px;line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+.mono{font-family:ui-monospace,"SF Mono",Consolas,"Liberation Mono",monospace;font-variant-numeric:tabular-nums}
+.wrap{max-width:1200px;margin:0 auto;padding:26px 20px 64px}
+
+/* ---------- header ---------- */
+header{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:14px}
+.brand{display:flex;align-items:center;gap:13px;min-width:0}
+.brand .mark{
+  width:46px;height:46px;flex:0 0 46px;border-radius:50%;display:grid;place-items:center;
+  font-size:22px;font-weight:800;color:#8a5b06;
+  background:radial-gradient(circle at 33% 26%, #ffeeae 0%, #f0bb45 52%, #d59a1e 100%);
+  box-shadow:inset 0 0 0 2px rgba(255,255,255,.45), inset 0 0 0 3.5px rgba(158,110,10,.28), 0 4px 10px rgba(120,80,0,.2);
+}
+h1{font-size:24px;margin:0 0 2px;letter-spacing:-.4px}
+header p.sub{margin:0;color:var(--muted);font-size:13.5px}
+.kbd-hint{font-size:12px;color:#9aa5b8;display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+kbd.dark{background:#fff;border:1px solid var(--line);color:var(--muted);border-radius:5px;padding:1px 5px;font-size:11px;margin:0}
+
+/* ---------- 环节导航 ---------- */
+.tabs{
+  position:sticky;top:0;z-index:60;margin:0 -10px 18px;padding:9px 10px;
+  background:rgba(243,246,251,.95);
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+  border-radius:0 0 16px 16px;
+  box-shadow:0 8px 18px -12px rgba(23,43,84,.35);
+}
+.tabs-inner{display:flex;gap:8px;flex-wrap:wrap}
+.tab{
+  display:flex;align-items:center;gap:8px;font-size:14.5px;font-weight:600;color:var(--muted);
+  background:#fff;border:1px solid var(--line);border-radius:11px;padding:9px 15px;
+}
+.tab .ti{font-size:11px;font-weight:700;color:#a8b3c4;letter-spacing:.06em}
+.tab:hover{color:var(--txt);border-color:#c9d6ec;transform:translateY(-1px)}
+.tab.active{background:var(--blue);border-color:var(--blue);color:#fff;box-shadow:0 7px 18px rgba(47,111,237,.3)}
+.tab.active .ti{color:rgba(255,255,255,.78)}
+
+.panel{display:none}
+.panel.active{display:block;animation:fadeUp .3s ease}
+
+.pager{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:-6px 0 22px;flex-wrap:wrap}
+.pager button{padding:9px 15px;font-size:14px}
+.pager .next{background:var(--blue);border-color:var(--blue);color:#fff}
+.pager .next:hover{background:var(--blue-d);border-color:var(--blue-d)}
+
+/* ---------- card ---------- */
+.card{
+  background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+  box-shadow:var(--shadow);padding:20px 22px 22px;margin-bottom:20px;
+}
+.card-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.card-head h2{font-size:18.5px;margin:0;display:flex;align-items:center;gap:10px;letter-spacing:-.2px}
+.card-head .num{
+  font-size:12px;font-weight:700;color:var(--blue);background:var(--blue-soft);
+  border-radius:7px;padding:3px 8px;letter-spacing:.06em;
+}
+.head-tools{display:flex;gap:8px;flex-wrap:wrap}
+
+button{
+  font-family:inherit;font-size:14px;color:var(--txt);cursor:pointer;
+  background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 13px;
+  transition:.16s ease;font-weight:500;
+}
+button:hover{border-color:#c9d6ec;background:#fafcff;transform:translateY(-1px)}
+button:active{transform:translateY(0)}
+button:disabled{opacity:.45;cursor:not-allowed;transform:none}
+button.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+button.primary:hover{background:var(--blue-d);border-color:var(--blue-d)}
+button.hot{background:var(--red-soft);border-color:#f6cfcb;color:#b8352b}
+button.hot:hover{background:#fbe0de;border-color:#efc0bb}
+button.ghost{padding:7px 11px;font-size:13px;color:var(--muted)}
+kbd{
+  font-family:inherit;font-size:11px;background:rgba(255,255,255,.22);
+  border:1px solid rgba(255,255,255,.35);border-radius:5px;padding:1px 5px;margin-left:5px;
+}
+
+/* ---------- simulator layout ---------- */
+.grid{display:grid;grid-template-columns:minmax(300px,360px) 1fr;gap:22px;align-items:start}
+@media (max-width:940px){.grid{grid-template-columns:1fr}}
+
+/* ---------- coin ---------- */
+.stage{
+  position:relative;height:250px;border-radius:14px;overflow:hidden;
+  background:
+    radial-gradient(circle at 50% 34%, #ffffff 0%, #eef4ff 46%, #e2ebfb 100%);
+  border:1px solid var(--line);
+  display:grid;place-items:center;
+  perspective:900px;
+}
+.stage::after{
+  content:"";position:absolute;left:50%;bottom:0;width:78%;height:34px;transform:translateX(-50%);
+  background:radial-gradient(ellipse at center, rgba(52,86,150,.16), transparent 70%);
+}
+.holder{transform-style:preserve-3d;will-change:transform;z-index:2}
+.holder.hop{animation:hop .82s cubic-bezier(.3,.55,.3,1)}
+@keyframes hop{
+  0%{transform:translateY(0)}
+  34%{transform:translateY(-58px)}
+  68%{transform:translateY(-8px)}
+  84%{transform:translateY(-16px)}
+  100%{transform:translateY(0)}
+}
+.holder{transform-style:preserve-3d}
+.coin{position:relative;width:126px;height:126px;transform-style:preserve-3d;
+  transform:rotateX(0deg);
+  transition:transform .8s cubic-bezier(.36,.05,.35,1);}
+.coin.spin-fast{transition:transform .5s cubic-bezier(.4,0,.6,1)}
+.face{
+  position:absolute;inset:0;border-radius:50%;display:grid;place-items:center;
+  backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  background:radial-gradient(circle at 33% 26%, #ffeeae 0%, #f0bb45 52%, #d59a1e 100%);
+  box-shadow:
+    inset 0 0 0 5px rgba(255,255,255,.45),
+    inset 0 0 0 7px rgba(158,110,10,.28),
+    0 10px 20px rgba(120,80,0,.22);
+}
+.face::after{content:"";position:absolute;inset:17px;border-radius:50%;border:1.5px dashed rgba(150,100,10,.34)}
+.face.back{transform:rotateX(180deg)}
+.face span{font-size:47px;font-weight:800;color:#8a5b06;text-shadow:0 1px 0 rgba(255,255,255,.6);z-index:2}
+.face .ring{position:absolute;font-size:10px;letter-spacing:.18em;color:rgba(140,92,6,.55);font-weight:700;
+  top:12px;left:0;right:0;text-align:center}
+.flag{
+  position:absolute;top:12px;left:50%;transform:translateX(-50%) scale(.8);opacity:0;
+  background:#fff;border:1px solid var(--line);border-radius:999px;padding:4px 13px;
+  font-size:13.5px;font-weight:700;box-shadow:var(--shadow-sm);transition:.25s ease;z-index:3;
+}
+.flag.show{opacity:1;transform:translateX(-50%) scale(1)}
+.flag.heads{color:var(--red);border-color:#f6cfcb;background:#fff7f6}
+.flag.tails{color:var(--blue);border-color:#cfdcfa;background:#f7faff}
+
+/* ---------- controls ---------- */
+.ctrl{margin-top:14px;display:flex;flex-direction:column;gap:11px}
+#btnFlip{width:100%;padding:13px;font-size:16px;font-weight:700;letter-spacing:.5px;border-radius:12px}
+.batch{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.batch span{font-size:13px;color:var(--muted);margin-right:1px}
+.batch button{padding:7px 11px;font-size:13px}
+.auto{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.hint{font-size:12px;color:#9aa5b8}
+
+/* ---------- stats ---------- */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+@media (max-width:640px){.stats{grid-template-columns:repeat(2,1fr)}}
+.tile{background:#fafcff;border:1px solid var(--line-soft);border-radius:12px;padding:10px 12px}
+.tile .lb{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:5px}
+.tile .vl{font-size:22px;font-weight:700;letter-spacing:-.4px;margin-top:3px}
+.tile .vl small{font-size:12px;font-weight:500;color:var(--muted);margin-left:3px}
+.tile.f .vl{color:var(--blue)}
+.tile.d .vl{color:#b8352b}
+
+/* ---------- chart ---------- */
+.chart-box{border:1px solid var(--line);border-radius:12px;padding:10px 12px 6px;background:#fff}
+.chart-head{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;color:var(--muted);margin-bottom:4px}
+#chart{width:100%;height:270px;display:block}
+@media (max-width:640px){#chart{height:220px}}
+.tip{
+  font-size:13px;color:var(--muted);margin:10px 2px 0;min-height:22px;
+  border-left:3px solid var(--blue-soft);padding-left:10px;
+}
+.tip b{color:var(--txt)}
+
+/* ---------- records ---------- */
+.rec-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(288px,1fr));gap:12px;margin-bottom:18px}
+.rec{
+  border:1px solid var(--line);border-radius:14px;padding:13px 13px 14px;background:#fff;
+  box-shadow:var(--shadow-sm);transition:.18s ease;position:relative;
+}
+.rec:hover{transform:translateY(-3px);box-shadow:0 12px 26px rgba(23,43,84,.1);border-color:#d3e0f7}
+.rec .top{display:flex;align-items:center;gap:11px}
+.avatar{width:58px;height:58px;border-radius:50%;flex:0 0 58px;box-shadow:0 3px 10px rgba(23,43,84,.12)}
+.rec .nm{font-weight:700;font-size:15px;line-height:1.25}
+.rec .en{font-size:11px;color:#9aa5b8;letter-spacing:.02em}
+.rec .yr{font-size:11.5px;color:var(--muted);margin-top:1px}
+.tag{
+  position:absolute;top:10px;right:10px;font-size:10.5px;font-weight:700;color:var(--gold);
+  background:#fff8e8;border:1px solid #f6e2b4;border-radius:999px;padding:2px 7px;
+}
+.rec .data{display:flex;align-items:baseline;gap:6px;margin:11px 0 4px}
+.rec .data .big{font-size:23px;font-weight:700;color:var(--blue);letter-spacing:-.5px}
+.rec .data .sm{font-size:12px;color:var(--muted)}
+.rec .meta{font-size:12px;color:var(--muted);display:flex;gap:12px;flex-wrap:wrap}
+.rec .meta b{color:var(--txt);font-weight:600}
+.rec .note{font-size:12.3px;color:#7b8798;margin-top:9px;padding-top:9px;border-top:1px dashed var(--line-soft)}
+
+table.hist{width:100%;border-collapse:collapse;font-size:13.5px}
+table.hist th,table.hist td{padding:9px 10px;border-bottom:1px solid var(--line-soft);text-align:left}
+table.hist th{font-size:12.5px;color:var(--muted);font-weight:600;background:#fafcff}
+table.hist tbody tr:hover{background:#fafcff}
+table.hist td.num{text-align:right;font-variant-numeric:tabular-nums}
+
+/* ---------- 教材式记录表 ---------- */
+.sub-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:4px 0 10px}
+.sub-head h3{margin:0;font-size:15.5px;letter-spacing:-.2px}
+.sub-head h3::before{content:"";display:inline-block;width:3px;height:14px;background:var(--blue);
+  border-radius:2px;margin-right:8px;vertical-align:-2px}
+.tbl-wrap{overflow-x:auto}
+table.book-tbl{
+  width:100%;max-width:760px;margin:0 auto;border-collapse:separate;border-spacing:0;
+  border:2px solid #c6d5ef;border-radius:6px;overflow:hidden;font-size:15px;
+  box-shadow:0 2px 10px rgba(23,43,84,.05);
+}
+table.book-tbl th,table.book-tbl td{padding:13px 16px;text-align:center;border-bottom:1px solid #dae4f3}
+table.book-tbl thead th{
+  background:#eef4ff;color:#2a3a52;font-weight:700;font-size:14.5px;letter-spacing:.2px;
+}
+table.book-tbl tbody td{color:#1d2430}
+table.book-tbl tbody tr:last-child td{border-bottom:none}
+table.book-tbl th:first-child,table.book-tbl td:first-child{border-right:1px solid #dae4f3}
+table.book-tbl th+th,table.book-tbl td+td{border-right:1px solid #dae4f3}
+table.book-tbl th:last-child,table.book-tbl td:last-child{border-right:none}
+table.book-tbl tr.clickable{cursor:pointer;transition:background .15s ease}
+table.book-tbl tbody tr.clickable:hover{background:#f5f9ff}
+table.book-tbl tbody tr.done{background:#eef4ff}
+table.book-tbl tbody tr.hl{background:#dceaff;box-shadow:inset 3px 0 0 var(--blue)}
+table.book-tbl .fn{display:flex;align-items:center;justify-content:center;gap:8px}
+table.book-tbl .mval{font-variant-numeric:tabular-nums;font-weight:600;letter-spacing:.5px}
+table.book-tbl .fval{
+  display:inline-block;min-width:78px;font-variant-numeric:tabular-nums;letter-spacing:.5px;
+  color:#c2cbd9;font-weight:600;transition:.2s ease;
+}
+table.book-tbl .fval.shown{color:#0d6b6b;font-weight:800}
+table.book-tbl .fval.flash{animation:flashIn .45s ease}
+@keyframes flashIn{0%{background:#cde9ff;transform:scale(1.14)}100%{background:transparent;transform:scale(1)}}
+table.book-tbl td.who{font-weight:600}
+/* 未揭晓的行：只有名字，其余格子完全留白（频率格用伪元素做悬停提示，不进 DOM） */
+table.book-tbl td.fcell{position:relative}
+table.book-tbl tbody tr.pending td.fcell::after{
+  content:"点此揭晓";position:absolute;inset:0;display:grid;place-items:center;
+  color:#c3cddb;font-size:12.5px;font-weight:600;pointer-events:none;
+}
+
+/* 分数（m/n） */
+.frac{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;
+  font-size:13px;line-height:1.05;font-style:italic;font-weight:400}
+.frac .bar{display:block;width:100%;min-width:15px;height:1.2px;background:currentColor;margin:2px 0}
+.frac i{font-style:italic}
+
+/* ---------- 记录表（左）+ 折线图（右） 双栏 ---------- */
+.rec-two{display:grid;grid-template-columns:minmax(0,1.16fr) minmax(0,1fr);gap:20px;align-items:start}
+.rec-left{min-width:0}
+.rec-right{min-width:0}
+.rec-left .chart-tools{margin-top:14px}
+.rec-left .tbl-wrap{overflow-x:auto}
+/* 左栏较窄，表头/单元格收紧一点，避免"试验者"竖排折字 */
+.rec-left table.book-tbl th,.rec-left table.book-tbl td{padding:11px 8px;font-size:13.5px}
+.rec-left table.book-tbl th{line-height:1.35}
+.rec-left table.book-tbl td:first-child,.rec-left table.book-tbl th:first-child{white-space:nowrap}
+@media (max-width:900px){
+  .rec-two{grid-template-columns:minmax(0,1fr)}
+}
+
+/* ---------- 频率折线图 ---------- */
+.chart-panel{border:1px solid var(--line);border-radius:14px;padding:14px 16px 10px;background:#fff;overflow:hidden}
+.fchart{width:100%;height:auto;display:block;min-height:300px}
+.fchart .ax{stroke:#1a8c8c;stroke-width:2;fill:none;stroke-linecap:round}
+.fchart .tick{stroke:#1a8c8c;stroke-width:2;stroke-linecap:round}
+.fchart .grid{stroke:#e3ecf7;stroke-width:1}
+.fchart .ln{stroke:#1a8c8c;stroke-width:2.4;stroke-linecap:round;fill:none}
+.fchart .glabel{font:italic 700 17px "Cambria","Times New Roman",Georgia,serif;fill:#1d2430}
+.fchart .tlabel{font:600 14px "Cambria","Times New Roman",Georgia,serif;fill:#1d2430}
+.fchart .ticklabel{font-size:12.6px}
+.fchart .vtop{font:700 16px "Cambria","Times New Roman",Georgia,serif;fill:#0d6b6b}
+.fchart .vbot{font:700 16px "Cambria","Times New Roman",Georgia,serif;fill:#1d2430}
+.fchart .fhint{font:600 13.5px system-ui,"Microsoft YaHei",sans-serif;fill:#a8b3c4}
+.fchart .hitbox{fill:transparent;cursor:pointer}
+/* 每点一下才画出来的元素：淡入 + 轻微放大，让学生看见"它刚出现" */
+.fchart .pdot{animation:dotIn .34s cubic-bezier(.3,1.4,.5,1) both}
+.fchart .ticklabel{animation:inkIn .3s ease both}
+@keyframes dotIn{from{opacity:0;transform:scale(.35);transform-box:fill-box;transform-origin:center}
+                 to{opacity:1;transform:scale(1);transform-box:fill-box;transform-origin:center}}
+@keyframes inkIn{from{opacity:0}to{opacity:1}}
+.fchart .halo{fill:#bfe0ea;opacity:0}
+.fchart .halo.on{opacity:.9;animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:.75}50%{transform:scale(1.25);opacity:.35}}
+.fchart .dotlit{fill:#1a8c8c}
+.fchart .dotdim{fill:#fff;stroke:#c3d3e6;stroke-width:2}
+.fchart .dotdimc{cursor:pointer}
+
+.chart-tools{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:12px;
+  padding-top:12px;border-top:1px dashed var(--line-soft)}
+.chart-tools button{padding:8px 14px;font-size:13.5px}
+
+/* ---------- questions ---------- */
+.qcard{
+  border:1px solid var(--line);border-radius:14px;padding:16px 17px;background:#fff;
+  box-shadow:var(--shadow-sm);margin-bottom:14px;
+}
+.qcard .qh{display:flex;align-items:flex-start;gap:12px}
+.qbadge{
+  flex:0 0 auto;width:34px;height:34px;border-radius:11px;display:grid;place-items:center;
+  font-weight:800;font-size:15px;background:var(--blue-soft);color:var(--blue);
+}
+.qcard h3{margin:0;font-size:15.5px;line-height:1.5}
+.qbody{margin-top:13px;padding-top:13px;border-top:1px dashed var(--line);display:none}
+.qbody.show{display:block;animation:fadeUp .32s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+.quote{
+  background:#f8fbff;border-left:3px solid var(--blue);border-radius:0 10px 10px 0;
+  padding:11px 14px;font-size:14.5px;color:#26313f;margin:0 0 13px;
+}
+.quote em{font-style:normal;color:var(--blue);font-weight:700}
+.verdict{
+  margin-top:12px;background:#f6fdf9;border:1px solid #ccecd8;border-radius:11px;
+  padding:11px 14px;font-size:13.8px;color:#15603b;display:none;
+}
+.verdict.show{display:block;animation:fadeUp .3s ease}
+.verdict b{color:#0d7a45}
+.row{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+.strip{
+  position:relative;height:78px;margin:6px 0 4px;border-radius:11px;overflow:hidden;
+  border:1px solid var(--line-soft);
+  /* 每 10% 一条细线 = 频率的 0.001（横轴 0.4950~0.5050） */
+  background:
+    repeating-linear-gradient(90deg, rgba(120,150,200,.15) 0 1px, rgba(0,0,0,0) 1px 10%),
+    linear-gradient(180deg,#fbfdff,#f4f8ff);
+}
+.strip .zero{position:absolute;left:50%;top:0;bottom:0;width:1.5px;background:var(--red);opacity:.9}
+.strip .pear{position:absolute;top:0;bottom:0;width:1.5px;background:#c9a227;opacity:.85}
+.strip .lbl{position:absolute;font-size:10.5px;color:var(--muted);transform:translateX(-50%);white-space:nowrap}
+.strip .lbl.red{color:var(--red);font-weight:700;background:rgba(255,255,255,.8);padding:0 3px;border-radius:4px}
+.strip .lbl.p{color:#a8850f;font-weight:700;background:rgba(255,255,255,.8);padding:0 3px;border-radius:4px}
+.strip .dot{position:absolute;width:9px;height:9px;border-radius:50%;background:var(--blue);
+  border:2px solid #fff;box-shadow:0 1px 4px rgba(47,111,237,.55);transform:translate(-50%,-50%);
+  animation:pop .3s ease}
+@keyframes pop{from{opacity:0;transform:translate(-50%,-50%) scale(.2)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+.runlist{display:flex;flex-direction:column;gap:6px;max-height:190px;overflow:auto;margin-top:10px}
+.runrow{display:flex;align-items:center;gap:10px;font-size:13px;background:#fafcff;border:1px solid var(--line-soft);
+  border-radius:9px;padding:6px 10px}
+.runrow .idx{color:#9aa5b8;min-width:42px;font-size:12px}
+.runrow .fv{font-variant-numeric:tabular-nums;font-weight:700;min-width:74px}
+.runrow .dv{font-variant-numeric:tabular-nums;color:var(--muted);min-width:104px;font-size:12.5px}
+.chip{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:8px;font-size:12px;font-weight:700;
+  margin:0 4px 4px 0;border:1px solid var(--line)}
+.chip.h{color:var(--red);background:#fff7f6;border-color:#f6cfcb}
+.chip.t{color:var(--blue);background:#f7faff;border-color:#cfdcfa}
+.summary{margin-top:12px;font-size:13.5px;color:var(--muted)}
+.summary b{color:var(--txt)}
+
+/* ---------- conclusion ---------- */
+.concl{
+  background:linear-gradient(180deg,#fffdf6,#fff9ec);border:1px solid #f6e2b4;border-radius:14px;padding:18px 20px;
+}
+.concl h3{margin:0 0 12px;font-size:16px;display:flex;align-items:center;gap:8px}
+.concl ol{margin:0;padding-left:20px}
+.concl li{margin-bottom:9px;font-size:14.5px;line-height:1.72}
+.concl li:last-child{margin-bottom:0}
+.concl b{color:#b8352b}
+.foot{text-align:center;color:#9aa5b8;font-size:12.5px;margin-top:26px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <span class="mark">正</span>
+      <div>
+        <h1>抛硬币模拟器</h1>
+        <p class="sub">随机事件的概率 · 课堂演示　|　用几十秒跑完 100 万次试验，再回头看数学家手里那枚真实的硬币</p>
+      </div>
+    </div>
+    <span class="kbd-hint">快捷键：<kbd class="dark">1</kbd><kbd class="dark">2</kbd><kbd class="dark">3</kbd> 切换环节　<kbd class="dark">←</kbd><kbd class="dark">→</kbd> 上/下一环节</span>
+  </header>
+
+  <nav class="tabs" id="tabs">
+    <div class="tabs-inner">
+      <button class="tab active" data-tab="sim"><span class="ti">01</span>抛硬币模拟器</button>
+      <button class="tab" data-tab="rec"><span class="ti">02</span>数学家的记录 · 追问与验证</button>
+      <button class="tab" data-tab="sum"><span class="ti">03</span>师生小结</button>
+    </div>
+  </nav>
+
+  <!-- ============ 01 模拟器 ============ -->
+  <div class="panel active" id="panel-sim">
+  <section class="card">
+    <div class="card-head">
+      <h2><span class="num">01</span>抛硬币模拟器</h2>
+      <div class="head-tools">
+        <button id="btnSound" class="ghost" aria-pressed="true">🔊 音效：开</button>
+        <button id="btnReset" class="ghost">↺ 重置</button>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div>
+        <div class="stage">
+          <div class="flag" id="flag"></div>
+          <div class="holder" id="holder">
+            <div class="coin" id="coin">
+              <div class="face front"><div class="ring">H E A D S</div><span>正</span></div>
+              <div class="face back"><div class="ring">T A I L S</div><span>反</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ctrl">
+          <button id="btnFlip" class="primary">抛一次<kbd>空格</kbd></button>
+          <div class="batch">
+            <span>连抛</span>
+            <button data-n="10">10 次</button>
+            <button data-n="100">100 次</button>
+            <button data-n="1000">1000 次</button>
+            <button data-n="10000">1 万次</button>
+            <button data-n="1000000" class="hot">100 万次</button>
+          </div>
+          <div class="auto">
+            <button id="btnAuto">▶ 自动连抛</button>
+            <span class="hint">空格 = 抛一次　R = 重置</span>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="stats">
+          <div class="tile"><div class="lb">抛掷次数 n</div><div class="vl mono" id="sN">0</div></div>
+          <div class="tile"><div class="lb">正面朝上次数 m</div><div class="vl mono" id="sM">0</div></div>
+          <div class="tile f"><div class="lb">正面朝上频率 f = m/n</div><div class="vl mono" id="sF">—</div></div>
+          <div class="tile d"><div class="lb">与 0.5 的偏差</div><div class="vl mono" id="sD">—</div></div>
+        </div>
+
+        <div class="chart-box">
+          <div class="chart-head">
+            <span>频率 f 随抛掷次数 n 的变化</span>
+            <span class="mono" id="yrange"></span>
+          </div>
+          <canvas id="chart"></canvas>
+        </div>
+        <p class="tip" id="tip">点击「抛一次」开始。观察红色的 <b>P = 0.5</b> 参考线与蓝色频率折线的关系。</p>
+      </div>
+    </div>
+  </section>
+  <div class="pager">
+    <span class="hint">模拟器的数据会一直保留，切到别的环节再切回来也不会丢</span>
+    <button class="next" data-go="rec">下一环节：数学家的记录 →</button>
+  </div>
+  </div><!-- /panel-sim -->
+
+  <!-- ============ 02 数学家的记录 ============ -->
+  <div class="panel" id="panel-rec">
+  <section class="card">
+    <div class="card-head">
+      <h2><span class="num">02</span>数学家做过的抛掷硬币试验</h2>
+      <span class="hint">没有电脑的年代，他们用手一枚一枚地抛</span>
+    </div>
+
+    <div class="sub-head">
+      <h3>试验结果记录表与频率折线图</h3>
+      <span class="hint">在左边表格里点一行，右边图上就画出对应的一个点</span>
+    </div>
+
+    <div class="rec-two">
+      <!-- 左：记录表 -->
+      <div class="rec-left">
+        <div class="tbl-wrap">
+          <table class="book-tbl" id="bookTbl">
+            <colgroup>
+              <col style="width:22%"><col style="width:19%"><col style="width:25%"><col style="width:34%">
+            </colgroup>
+            <thead>
+              <tr>
+                <th>试验者</th>
+                <th>抛掷次数 <i>n</i></th>
+                <th>"正面朝上"的次数 <i>m</i></th>
+                <th>频率 <span class="frac"><i>m</i><span class="bar"></span><i>n</i></span></th>
+              </tr>
+            </thead>
+            <tbody id="bookBody"></tbody>
+          </table>
+        </div>
+        <div class="chart-tools">
+          <button class="primary" id="btnStep">显示下一个数据 →</button>
+          <button id="btnShowAll">全部显示</button>
+          <button class="ghost" id="btnHideAll">重新点起</button>
+          <span class="hint" id="fHint"></span>
+        </div>
+      </div>
+
+      <!-- 右：折线图（横轴与点都随点击逐个出现） -->
+      <div class="rec-right">
+        <div class="chart-panel">
+          <svg class="fchart" id="fchart" viewBox="0 0 452 486" role="img"
+               aria-label="抛掷硬币试验的频率折线图"></svg>
+        </div>
+        <p class="hint" style="margin:10px 2px 0">
+          抛掷次数从 2048 次到 24000 次，频率都在 0.5 附近摆动，<b>摆动方向并不单调</b>——有的偏高，有的偏低；当抛掷次数越来越大时，摆动幅度<b>越来越小</b>。
+        </p>
+      </div>
+    </div>
+
+    <!-- 数学家头像（移到本环节最下部） -->
+    <div class="sub-head" style="margin-top:26px">
+      <h3>这些试验是谁做的</h3>
+      <span class="hint">鼠标移到头像卡片上，表格里对应的一行也会亮起来</span>
+    </div>
+    <div class="rec-grid" id="recGrid"></div>
+
+    <!-- 追问与现场验证（原环节 03，并入本面） -->
+    <div class="sub-head" style="margin-top:30px">
+      <h3>追问与现场验证</h3>
+      <span class="hint">点按钮揭开问题，再用模拟器现场"重做试验"来验证</span>
+    </div>
+<!-- 追问1 -->
+    <div class="qcard">
+      <div class="qh">
+        <div class="qbadge">追1</div>
+        <div style="flex:1">
+          <h3>如果今天利用模拟器再现数学家皮尔逊的试验，一样抛 24000 次硬币，新得到的频率一定比 0.5005 更加接近 0.5 吗？</h3>
+          <div class="row" style="margin-top:11px">
+            <button class="primary" data-reveal="q1">显示问题与验证</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="qbody" id="q1body">
+        <p class="quote">
+          皮尔逊 1912 年的记录：<em>n = 24000，m = 12012，f = 0.5005</em>。这个频率离 0.5 只差
+          <em>0.0005</em>。现在用模拟器"重做"同样的 24000 次试验，新得到的频率<em>一定</em>比 0.5005 更接近 0.5 吗？
+        </p>
+        <div class="row">
+          <button class="primary" id="btnRun1">再抛 24000 次</button>
+          <button id="btnRun10">连做 10 次（每次 24000 次）</button>
+          <button id="btnToSim">→ 在模拟器里完整演示一次</button>
+          <button class="ghost" id="btnClearRuns">清空记录</button>
+        </div>
+
+        <div class="strip" id="strip">
+          <div class="zero" style="left:50%"></div>
+          <div class="pear" id="pearLine"></div>
+          <div class="lbl red" style="left:50%;top:1px">0.5000</div>
+          <div class="lbl p" id="pearLbl" style="top:60px">皮尔逊 0.5005</div>
+        </div>
+        <div class="hint">横轴 0.4950 —— 0.5050，每一小格 = 0.001；<b style="color:var(--red)">红线 = 0.5000</b>，<b style="color:#a8850f">黄线 = 皮尔逊的 0.5005</b>。每个蓝点是一次重做的结果。</div>
+
+        <div class="runlist" id="runList"></div>
+        <div class="summary" id="runSummary"></div>
+        <div class="verdict" id="v1"></div>
+      </div>
+    </div>
+
+    <!-- 追问2 -->
+    <div class="qcard">
+      <div class="qh">
+        <div class="qbadge">追2</div>
+        <div style="flex:1">
+          <h3>若在此基础上再抛一次硬币，做第 24001 次试验，这次硬币正面朝上的可能性会更大吗？</h3>
+          <div class="row" style="margin-top:11px">
+            <button class="primary" data-reveal="q2">显示问题与验证</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="qbody" id="q2body">
+        <p class="quote">
+          前面 24000 次的结果（正面 12012 次、反面 11988 次）会不会"影响"第 24001 次？这一次正面朝上的可能性是多少？
+        </p>
+        <div class="row">
+          <button class="primary" id="btnFlip24001">抛第 24001 次</button>
+          <button id="btnFlipMany">再连抛 20 次看看</button>
+          <button class="ghost" id="btnClear24001">清空</button>
+        </div>
+        <div style="margin-top:12px" id="chips24001"></div>
+        <div class="summary" id="sum24001"></div>
+        <div class="verdict" id="v2"></div>
+      </div>
+    </div>
+  </section>
+  <div class="pager">
+    <button class="prev" data-go="sim">← 上一环节：抛硬币模拟器</button>
+    <button class="next" data-go="sum">下一环节：师生小结 →</button>
+  </div>
+  </div><!-- /panel-rec -->
+
+  <!-- ============ 04 小结 ============ -->
+  <div class="panel" id="panel-sum">
+  <section class="card">
+    <div class="card-head"><h2><span class="num">03</span>师生小结</h2></div>
+    <div class="concl">
+      <h3>💡 频率与概率，到底"差"在哪里</h3>
+      <ol>
+        <li>无论做多少次试验，得到的<b>频率</b>都可能与真实的<b>概率</b>有偏差；</li>
+        <li>再次进行大量重复试验，得到的估计值<b>也不一定</b>就比这一次更接近概率——偏差的大小和方向都是随机的；</li>
+        <li>无论得到的概率的估计值是多少，<b>下一次试验中随机事件实际发生的可能性都不一定是这个值</b>。</li>
+      </ol>
+      <p style="margin:14px 0 0;font-size:13.5px;color:#8a6a1c">
+        所以：频率是"抛完以后数出来的"，概率是"抛之前就确定的"。用频率估计概率，靠的是<b>大量重复试验下的稳定性</b>，
+        而不是"某一次一定更准"。
+      </p>
+    </div>
+  </section>
+  <div class="pager">
+    <button class="prev" data-go="rec">← 上一环节：数学家的记录</button>
+    <span class="hint">回到第 1 个环节，可以再抛一次看看</span>
+  </div>
+  </div><!-- /panel-sum -->
+
+  <p class="foot">抛硬币模拟器 · 期望结果 P(正面) = P(反面) = 0.5（每次投掷相互独立）</p>
+</div>
+
+<script>
+/* =========================================================
+   0. 数学家头像（纯 SVG 手绘插画）
+   ========================================================= */
+const AV = {
+  buffon:{bg:['#e9f1ff','#cfe0ff'],coat:'#2d4a7c',coatLight:'#3d5f99',skin:'#f4cfae',skinD:'#e2b48f',
+    hair:'#f8f7f2',hairShade:'#dbd8cf',hairStyle:'wig',collar:'lace',label:'蒲丰'},
+  demorgan:{bg:['#eef7f1','#d6eddd'],coat:'#383d47',coatLight:'#4b5260',skin:'#f0c6a4',skinD:'#dea87f',
+    hair:'#5b4436',hairStyle:'sideburns',collar:'shirt',label:'德·摩根'},
+  pearson:{bg:['#fdf3e7','#f8e0c4'],coat:'#39424f',coatLight:'#4d586a',skin:'#f2c9a6',skinD:'#e0ae86',
+    hair:'#6b5446',hairStyle:'receding',mustache:true,collar:'shirt',label:'皮尔逊'},
+  feller:{bg:['#f1eefe','#ded8fb'],coat:'#31414f',coatLight:'#445868',skin:'#f6d3b4',skinD:'#e5b992',
+    hair:'#33302e',hairStyle:'slick',glasses:'round',collar:'shirt',tie:'#8f4a3e',label:'费勒'},
+  romanovsky:{bg:['#feeef0','#fbd6dc'],coat:'#40495c',coatLight:'#53607a',skin:'#f2c9a6',skinD:'#e0ae86',
+    hair:'#4a4038',hairStyle:'short',glasses:'square',collar:'shirt',tie:'#3f5c8a',label:'罗曼诺夫斯基'}
+};
+
+function avatarSVG(key){
+  const p = AV[key], u = key, id = n => 'av-' + u + '-' + n;
+  const coat = `
+    <path d="M4 120 C9 97 34 87 60 87 C86 87 111 97 116 120 Z" fill="${p.coat}"/>
+    <path d="M60 87 L48 120 L60 120 L72 120 L60 87 Z" fill="${p.coatLight}" opacity=".35"/>`;
+  const collar = p.collar === 'lace'
+    ? `<path d="M60 88 C50 88 41 92 39 101 C47 96 54 98 60 101 C66 98 73 96 81 101 C79 92 70 88 60 88 Z" fill="#fdfdf9"/>
+       <path d="M60 92 C55 96 55 104 60 108 C65 104 65 96 60 92 Z" fill="#f4f2ea"/>`
+    : `<path d="M45 88 L60 102 L75 88 L69 85 L60 95 L51 85 Z" fill="#fbfcff"/>
+       ${p.tie?`<path d="M60 97 L55 103 L60 119 L65 103 Z" fill="${p.tie}"/>`:''}`;
+  const neck = `<rect x="51.5" y="69" width="17" height="23" rx="8.5" fill="${p.skinD}"/>`;
+  const head = `<path d="M60 28.5 C74.5 28.5 81.5 38.5 81.5 52 C81.5 65.5 73.5 79.5 60 79.5 C46.5 79.5 38.5 65.5 38.5 52 C38.5 38.5 45.5 28.5 60 28.5 Z" fill="${p.skin}"/>`;
+  const ears = `<ellipse cx="38.4" cy="56" rx="3.6" ry="5.6" fill="${p.skinD}"/>
+    <ellipse cx="81.6" cy="56" rx="3.6" ry="5.6" fill="${p.skinD}"/>`;
+  let hairBack = '', hairFront = '';
+  if(p.hairStyle === 'wig'){
+    // 18 世纪扑粉假发：平直的假发帽 + 两侧卷筒 + 发际阴影
+    hairBack = `<circle cx="32.5" cy="52" r="8.5" fill="${p.hair}"/><circle cx="87.5" cy="52" r="8.5" fill="${p.hair}"/>
+      <circle cx="31" cy="62" r="7" fill="${p.hair}"/><circle cx="89" cy="62" r="7" fill="${p.hair}"/>
+      <circle cx="33.5" cy="70" r="5" fill="${p.hair}"/><circle cx="86.5" cy="70" r="5" fill="${p.hair}"/>`;
+    hairFront = `<path d="M60 16.5 C39.5 16.5 32 28 32 45 C32 48.5 32.6 50.5 33.6 52 C34.6 40 40 33 60 33 C80 33 85.4 40 86.4 52 C87.4 50.5 88 48.5 88 45 C88 28 80.5 16.5 60 16.5 Z" fill="${p.hair}"/>
+      <path d="M35 38 C40 32.5 49 30 60 30 C71 30 80 32.5 85 38" stroke="${p.hairShade}" stroke-width="2" fill="none" opacity=".75"/>
+      <path d="M63 22 C70 23 76 27 79.5 33" stroke="${p.hairShade}" stroke-width="1.5" fill="none" opacity=".6"/>`;
+  } else if(p.hairStyle === 'sideburns'){
+    // 19 世纪：头顶稀疏 + 长鬓角
+    hairBack = `<path d="M38 52 C36 31 46 24 60 24 C74 24 84 31 82 52 C79 41 70.5 36 60 36 C49.5 36 41 41 38 52 Z" fill="${p.hair}" opacity=".3"/>`;
+    hairFront = `<rect x="33" y="41" width="8.5" height="26" rx="4.2" fill="${p.hair}"/>
+      <rect x="78.5" y="41" width="8.5" height="26" rx="4.2" fill="${p.hair}"/>
+      <path d="M39 43 C42 36.5 48 33.5 60 33.5 C72 33.5 78 36.5 81 43" stroke="${p.hair}" stroke-width="2.4" fill="none" opacity=".45" stroke-linecap="round"/>`;
+  } else if(p.hairStyle === 'receding'){
+    // 高发际线 + 短鬓发
+    hairBack = `<ellipse cx="60" cy="50" rx="21" ry="24" fill="${p.hair}" opacity=".1"/>`;
+    hairFront = `<path d="M38.5 47 C40 29 48 23 60 23 C72 23 80 29 81.5 47 C79 40 74.5 38 68 40.5 C63.5 42 60.5 38 60 34.5 C56.5 39.5 47.5 42 42 44.5 Z" fill="${p.hair}"/>
+      <rect x="32.5" y="40" width="6.5" height="19" rx="3.2" fill="${p.hair}"/>
+      <rect x="81" y="40" width="6.5" height="19" rx="3.2" fill="${p.hair}"/>`;
+  } else if(p.hairStyle === 'slick'){
+    hairBack = `<path d="M60 22 C46 22 38 33 38 51 C38 56 38.5 58.5 39.5 60 C40.5 44 47 35 60 35 C73 35 79.5 44 80.5 60 C81.5 58.5 82 56 82 51 C82 33 74 22 60 22 Z" fill="${p.hair}"/>`;
+    hairFront = `<path d="M38 50 C38 30.5 47.5 23.5 60 23.5 C72.5 23.5 82 30.5 82 50 C79 39 71 34.5 60 34.5 C49 34.5 41 39 38 50 Z" fill="${p.hair}"/>`;
+  } else {
+    hairBack = `<path d="M60 22.5 C45 22.5 38 33.5 38 51 C38 55.5 38.8 58 39.8 59.5 C41.2 44.5 47.5 35 60 35 C72.5 35 78.8 44.5 80.2 59.5 C81.2 58 82 55.5 82 51 C82 33.5 75 22.5 60 22.5 Z" fill="${p.hair}"/>`;
+    hairFront = `<path d="M38.5 50 C38.5 31 48 24 60 24 C72 24 81.5 31 81.5 50 C78.5 40 71 35.5 60 35.5 C49 35.5 41.5 40 38.5 50 Z" fill="${p.hair}"/>`;
+  }
+  const brows = `<path d="M45.5 46.5 C50 43.4 55.5 43.6 58 46.6" stroke="${p.hair}" stroke-width="2.7" fill="none" stroke-linecap="round"/>
+    <path d="M62 46.6 C64.5 43.6 70 43.4 74.5 46.5" stroke="${p.hair}" stroke-width="2.7" fill="none" stroke-linecap="round"/>`;
+  const eyes = `<ellipse cx="52" cy="53" rx="2.2" ry="2.7" fill="#3a2f2a"/><ellipse cx="68" cy="53" rx="2.2" ry="2.7" fill="#3a2f2a"/>
+    <circle cx="52.8" cy="52" r=".8" fill="#fff" opacity=".7"/><circle cx="68.8" cy="52" r=".8" fill="#fff" opacity=".7"/>`;
+  const nose = `<path d="M60.5 55 C62.5 58 62.5 61 59.5 62" stroke="rgba(150,100,70,.45)" stroke-width="1.7" fill="none" stroke-linecap="round"/>`;
+  const mouth = p.mustache
+    ? `<path d="M47.5 62.8 C53 57.2 67 57.2 72.5 62.8 C69.5 67.8 50.5 67.8 47.5 62.8 Z" fill="${p.hair}"/>
+       <path d="M55 69.8 C58 71.6 62 71.6 65 69.8" stroke="#b4685c" stroke-width="1.9" fill="none" stroke-linecap="round"/>`
+    : `<path d="M54 68.5 C57 71 63 71 66 68.5" stroke="#b4685c" stroke-width="2" fill="none" stroke-linecap="round"/>`;
+  let specs = '';
+  if(p.glasses === 'round'){
+    specs = `<g fill="none" stroke="#4a4a55" stroke-width="1.9" opacity=".9">
+      <circle cx="52" cy="53" r="8.2"/><circle cx="68" cy="53" r="8.2"/>
+      <path d="M44 51.5 L37.5 50"/><path d="M76 51.5 L82.5 50"/></g>`;
+  } else if(p.glasses === 'square'){
+    specs = `<g fill="none" stroke="#4a4a55" stroke-width="1.9" opacity=".9">
+      <rect x="43.5" y="46.5" width="16.5" height="13" rx="3.4"/><rect x="60" y="46.5" width="16.5" height="13" rx="3.4"/>
+      <path d="M44 48.5 L37.5 47.5"/><path d="M76 48.5 L82.5 47.5"/></g>`;
+  }
+  return `<svg class="avatar" viewBox="0 0 120 120" role="img" aria-label="${p.label}">
+    <defs>
+      <linearGradient id="${id('bg')}" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="${p.bg[0]}"/><stop offset="1" stop-color="${p.bg[1]}"/>
+      </linearGradient>
+      <clipPath id="${id('clip')}"><circle cx="60" cy="60" r="57"/></clipPath>
+    </defs>
+    <circle cx="60" cy="60" r="57" fill="url(#${id('bg')})"/>
+    <g clip-path="url(#${id('clip')})">
+      ${coat}${collar}${neck}${ears}${hairBack}${head}${hairFront}${brows}${eyes}${nose}${mouth}${specs}
+    </g>
+    <circle cx="60" cy="60" r="57" fill="none" stroke="#ffffff" stroke-width="4"/>
+  </svg>`;
+}
+
+/* =========================================================
+   1. 数据
+   ========================================================= */
+// 教材记录表（试验者 / n / m）。频率一律由 m/n 现算，不写死，保证表格与图上标注永远一致。
+const RECORDS = [
+  {key:'demorgan', name:'棣莫弗', en:'A. De Morgan', yr:'1806—1871', n:2048,  m:1061,
+   note:'次数最少的一组，频率 0.5181，是全部记录里最偏高的一次。'},
+  {key:'buffon',   name:'布丰',   en:'G.-L. L. de Buffon', yr:'1707—1788', n:4040,  m:2048,
+   note:'就是提出"投针试验"的那位布丰，他真的一枚一枚抛了四千多次。'},
+  {key:'feller',   name:'费勒',   en:'W. Feller', yr:'1906—1970', n:10000, m:4979,
+   note:'一万次，频率 0.4979 落在 0.5 的下方——可见摆动方向并不固定。'},
+  {key:'pearson',  name:'皮尔逊', en:'K. Pearson', yr:'1857—1936', n:12000, m:6019,
+   note:'第一次记录：12000 次，频率 0.5016，偏高。'},
+  {key:'pearson',  name:'皮尔逊', en:'K. Pearson', yr:'1857—1936', n:24000, m:12012,
+   note:'次数翻倍后变成 0.5005，只差 0.0005。注意这是"重新做了一遍"，不是"越抛越准"的必然。'}
+];
+
+function buildRecords(){
+  const grid = document.getElementById('recGrid');
+  RECORDS.forEach(r => {
+    const f = r.m / r.n;
+    const d = document.createElement('div');
+    d.className = 'rec';
+    d.innerHTML = `
+      <div class="top">
+        ${avatarSVG(r.key)}
+        <div>
+          <div class="nm">${r.name}</div>
+          <div class="en">${r.en}</div>
+          <div class="yr">${r.yr}</div>
+        </div>
+      </div>
+      <div class="data">
+        <span class="big mono">${fmtFreq(f)}</span>
+        <span class="sm">频率 f</span>
+      </div>
+      <div class="meta">抛掷 <b class="mono">${fmt4(r.n)}</b> 次　正面 <b class="mono">${fmt4(r.m)}</b> 次</div>
+      <div class="note">${r.note}</div>`;
+    grid.appendChild(d);
+  });
+}
+
+/* =========================================================
+   1b. 教材式记录表 + 频率折线图（点一下出一个数据）
+   ========================================================= */
+const BOOK = { reveal:0, hl:-1 };
+const M = { x0:74, x1:398, y0:74, yTop:300, yHalf:214, yBot:392 };    // 绘图区
+const XGAP = 11;                    // 抛掷次数相同时，数值左右错开的半宽（px）
+// 横轴刻度值分行：false=第一行，true=第二行（避免 2048/4040 相撞）
+const XTICK_ROW = [false, true, false, false, false];
+
+const F_FONT     = 'italic 700 17px "Cambria","Times New Roman",Georgia,serif';
+const F_TICK     = '600 14px "Cambria","Times New Roman",Georgia,serif';
+const F_VTOP     = '700 16px "Cambria","Times New Roman",Georgia,serif';
+const F_VBOT     = '700 16px "Cambria","Times New Roman",Georgia,serif';
+const F_HINT     = '600 13.5px system-ui,"Microsoft YaHei",sans-serif';
+const F_DOT      = '700 15px "Cambria","Times New Roman",Georgia,serif';
+
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function xAt(i, n){
+  const base = M.x0 + (n - 2048) / (24000 - 2048) * (M.x1 - M.x0);
+  if(n === 10000) return base - XGAP;
+  if(n === 12000) return base + XGAP;
+  return base;
+}
+function yAt(f){ return M.yHalf - (f - 0.5) * 100 * 20; }
+
+// 数值沿折线的"上/下"交替摆放，避免互相压住
+function labelLayout(){
+  const laid = RECORDS.slice(0, 3).map((r, i) => ({
+    i, f: r.m / r.n, x: xAt(i, r.n), w: 66, prefer: i === 1 ? 'below' : 'above'
+  }));
+  laid.sort((a, b) => a.x - b.x);
+  laid[0].place = 'above';
+  for(let k = 1; k < laid.length; k++){
+    laid[k].place = laid[k - 1].place === 'above' ? 'below' : 'above';
+  }
+  const out = {};
+  laid.forEach(o => { out[o.i] = o.place; });
+  return out;
+}
+const PLACE = labelLayout();
+const LABEL_Y = { above:-38, below:33 };
+
+function renderTable(){
+  const tb = document.getElementById('bookBody');
+  tb.innerHTML = '';
+  RECORDS.forEach((r, i) => {
+    const f = r.m / r.n;
+    const done = i < BOOK.reveal;
+    const tr = document.createElement('tr');
+    tr.className = 'clickable' + (done ? ' done' : ' pending') + (BOOK.hl === i ? ' hl' : '');
+    tr.dataset.i = i;
+    // 未揭晓：只显示数学家名字，其余整格完全留白（悬停提示由 CSS 伪元素给出，不占 DOM）
+    tr.innerHTML = `<td class="who">${r.name}</td>
+      <td class="mval">${done ? fmt4(r.n) : ''}</td>
+      <td class="mval">${done ? fmt4(r.m) : ''}</td>
+      <td class="fcell"><span class="fval mono${done ? ' shown' : ''}" id="fval${i}">${done ? fmtFreq(f) : ''}</span></td>`;
+    tr.addEventListener('click', () => reveal(i));
+    tr.addEventListener('mouseenter', () => { BOOK.hl = i; paintTable(); renderChart(); });
+    tr.addEventListener('mouseleave', () => { BOOK.hl = -1; paintTable(); renderChart(); });
+    tb.appendChild(tr);
+  });
+}
+function paintTable(){
+  document.querySelectorAll('#bookBody tr').forEach(tr => {
+    const i = +tr.dataset.i, done = i < BOOK.reveal, r = RECORDS[i];
+    tr.classList.toggle('done', done);
+    tr.classList.toggle('hl', BOOK.hl === i);
+    const tds = tr.querySelectorAll('td');
+    if(tds[1]) tds[1].textContent = done ? fmt4(r.n) : '';
+    if(tds[2]) tds[2].textContent = done ? fmt4(r.m) : '';
+    const sp = document.getElementById('fval' + i);
+    if(sp){
+      sp.textContent = done ? fmtFreq(r.m / r.n) : '';
+      sp.className = 'fval mono' + (done ? ' shown' : '') + (BOOK.flash === i ? ' flash' : '');
+    }
+    tr.classList.toggle('pending', !done);
+  });
+}
+// 频率固定 3 位小数（教材里是 0.518 / 0.507 / 0.498 / 0.502 / 0.501）
+function fmtFreq(f){ return (Math.round(f * 1000) / 1000).toFixed(3); }
+// 整数按 4 位分组显示（教材里 2048 写成 "2 048" / "20 48"）
+function fmt4(x){
+  const s = String(x);
+  return s.length === 4 ? s.slice(0, 1) + ' ' + s.slice(1) : x.toLocaleString('en-US');
+}
+
+function renderChart(){
+  const svg = document.getElementById('fchart');
+  const P = [];
+
+  P.push(`<text class="glabel" x="${M.x0 - 30}" y="${M.y0 + 4}" text-anchor="middle" dominant-baseline="middle">频率</text>`);
+
+  // 纵轴刻度 0 和 1/2
+  P.push(`<line class="tick" x1="${M.x0 - 7}" y1="${M.yBot}" x2="${M.x0 + 7}" y2="${M.yBot}"/>`);
+  P.push(`<text class="tlabel" x="${M.x0 - 14}" y="${M.yBot + 6}" text-anchor="end">0</text>`);
+  P.push(`<line class="tick" x1="${M.x0 - 7}" y1="${M.yHalf}" x2="${M.x0 + 7}" y2="${M.yHalf}"/>`);
+  P.push(`<text class="glabel" x="${M.x0 - 17}" y="${M.yHalf - 15}" text-anchor="middle">1</text>`);
+  P.push(`<line x1="${M.x0 - 28}" y1="${M.yHalf - 2}" x2="${M.x0 - 6}" y2="${M.yHalf - 2}" stroke="#1d2430" stroke-width="1.7"/>`);
+  P.push(`<text class="glabel" x="${M.x0 - 17}" y="${M.yHalf + 17}" text-anchor="middle">2</text>`);
+
+  // 坐标轴
+  P.push(`<path class="ax" d="M ${M.x0} ${M.yBot} L ${M.x0} ${M.y0}"/>`);
+  P.push(`<path class="ax" d="M ${M.x0} ${M.yBot} L ${M.x1 + 34} ${M.yBot}"/>`);
+  P.push(`<path class="ax" d="M ${M.x0 - 5} ${M.y0 + 9} L ${M.x0} ${M.y0} L ${M.x0 + 5} ${M.y0 + 9}"/>`);
+  P.push(`<path class="ax" d="M ${M.x1 + 25} ${M.yBot - 5} L ${M.x1 + 34} ${M.yBot} L ${M.x1 + 25} ${M.yBot + 5}"/>`);
+
+  // 横轴刻度 + 刻度值：只画已经揭晓的记录，点一个出一个
+  // 2048 与 4040 在窄图区里只相差几十 px，必定重叠 → 按 XTICK_ROW 分两行上下错开
+  RECORDS.forEach((r, i) => {
+    if(i >= BOOK.reveal) return;
+    const x = xAt(i, r.n);
+    P.push(`<line class="tick" x1="${x}" y1="${M.yBot}" x2="${x}" y2="${M.yBot - (XTICK_ROW[i] ? 15 : 7)}"/>`);
+    P.push(`<text class="tlabel ticklabel" x="${x}" y="${M.yBot + (XTICK_ROW[i] ? 40 : 22)}"
+      text-anchor="middle">${fmt4(r.n)}</text>`);
+  });
+  P.push(`<text class="glabel" x="${M.x1 - 6}" y="${M.yBot - 26}" dominant-baseline="auto" text-anchor="end">抛掷次数</text>`);
+
+  // 折线：至少 2 个点才成线（只有 1 个点时不画，免得留下一段孤线）
+  const pts = RECORDS.slice(0, BOOK.reveal);
+  if(pts.length >= 2){
+    let d = '';
+    pts.forEach((r, k) => { d += (k ? ' L ' : 'M ') + xAt(k, r.n) + ' ' + yAt(r.m / r.n); });
+    P.push(`<path class="ln" d="${d}"/>`);
+  }
+
+  // 数值标注：只在揭晓后出现，图上不留任何预先的痕迹
+  RECORDS.slice(0, 3).forEach((r, i) => {
+    if(i >= BOOK.reveal) return;
+    const x = xAt(i, r.n), y = yAt(r.m / r.n);
+    const dy = LABEL_Y[PLACE[i]];
+    const cls = (i === BOOK.hl) ? 'vtop' : 'vbot';
+    P.push(`<circle class="pdot" cx="${x}" cy="${y}" r="5" fill="#1a8c8c"/>`);
+    P.push(`<text class="${cls}" x="${x}" y="${y + dy}" text-anchor="middle"
+      dominant-baseline="${dy < 0 ? 'auto' : 'hanging'}"
+      style="${i === BOOK.hl ? 'paint-order:stroke;stroke:#fff;stroke-width:4px;' : ''}">${fmtFreq(r.m / r.n)}</text>`);
+  });
+
+  // 24000 的数值（在折线右侧）
+  if(BOOK.reveal >= 5){
+    const r = RECORDS[4], x = xAt(4, r.n), y = yAt(r.m / r.n);
+    P.push(`<circle class="pdot" cx="${x}" cy="${y}" r="5" fill="#1a8c8c"/>`);
+    P.push(`<text class="${BOOK.hl === 4 ? 'vtop' : 'vbot'}" x="${x - 16}" y="${y - 1}" text-anchor="end"
+      dominant-baseline="middle" style="${BOOK.hl === 4 ? 'paint-order:stroke;stroke:#fff;stroke-width:4px;' : ''}">${fmtFreq(r.m / r.n)}</text>`);
+  }
+
+  // 交互热区：只给已揭晓的点（未揭晓时图上不应出现任何可点的痕迹）
+  RECORDS.slice(0, BOOK.reveal).forEach((r, i) => {
+    const x = xAt(i, r.n);
+    P.push(`<circle class="hitbox" data-hit="${i}" cx="${x}" cy="${yAt(r.m / r.n)}" r="20"/>`);
+  });
+
+  svg.innerHTML = P.join('');
+  bindHot();
+}
+
+function bindHot(){
+  const svg = document.getElementById('fchart');
+  svg.querySelectorAll('[data-hit]').forEach(el => {
+    el.addEventListener('click', () => reveal(+el.dataset.hit));
+    el.addEventListener('mouseenter', () => { BOOK.hl = +el.dataset.hit; paintTable(); renderChart(); });
+    el.addEventListener('mouseleave', () => { BOOK.hl = -1; paintTable(); renderChart(); });
+  });
+}
+
+function reveal(i){
+  if(i < BOOK.reveal){                       // 已揭晓 → 点击时轻闪一下，提示它就在那儿
+    BOOK.flash = i; paintTable();
+    setTimeout(() => { BOOK.flash = -1; paintTable(); }, 470);
+    return;
+  }
+  BOOK.reveal = i + 1;                       // 必须按顺序揭晓，保持折线连续
+  renderTable(); renderChart(); updateChartHint();
+  requestAnimationFrame(() => { requestAnimationFrame(() => hlRow(i, false)); });
+  hlRow(i, false);
+}
+function hlRow(i, clear){
+  document.querySelectorAll('#bookBody tr').forEach(tr => tr.classList.toggle('hl', +tr.dataset.i === i));
+  BOOK.hl = i;
+  renderChart();
+  if(clear !== false) setTimeout(() => { BOOK.hl = -1; paintTable(); /* keep row highlight */ }, 1400);
+}
+function updateChartHint(){
+  const el = document.getElementById('fHint');
+  const names = RECORDS.map((r, i) => (i < BOOK.reveal ? r.name : null)).filter(Boolean);
+  if(BOOK.reveal === 0) el.innerHTML = '点表格的行，或者下面这个按钮';
+  else if(BOOK.reveal >= RECORDS.length) el.innerHTML = '5 条记录全部揭晓，折线把 5 个点连了起来';
+  else el.innerHTML = `已显示 <b>${BOOK.reveal}</b> / ${RECORDS.length} 个数据，还剩 ${RECORDS.length - BOOK.reveal} 个`;
+}
+
+document.getElementById('btnStep').addEventListener('click', () => {
+  if(BOOK.reveal < RECORDS.length) reveal(BOOK.reveal);
+});
+document.getElementById('btnShowAll').addEventListener('click', () => {
+  BOOK.reveal = RECORDS.length; renderTable(); renderChart(); updateChartHint();
+});
+document.getElementById('btnHideAll').addEventListener('click', () => {
+  BOOK.reveal = 0; BOOK.hl = -1; renderTable(); renderChart(); updateChartHint();
+});
+
+/* =========================================================
+   2. 模拟器
+   ========================================================= */
+const S = { n:0, heads:0, points:[], busy:false, spinning:false, sound:true, auto:false, snap:true };
+const view = { y0:0, y1:1, t:0 };
+
+const $ = id => document.getElementById(id);
+const coinEl = $('coin'), holderEl = $('holder'), flagEl = $('flag');
+const canvas = $('chart'), ctx = canvas.getContext('2d');
+let rx = 0;
+
+/* --- 音效（WebAudio，无外部文件） --- */
+let ac = null;
+function tick(kind){
+  if(!S.sound) return;
+  try{
+    ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+    const t = ac.currentTime;
+    const o = ac.createOscillator(), g = ac.createGain();
+    o.type = 'triangle';
+    o.frequency.setValueAtTime(kind === 'h' ? 1180 : 880, t);
+    o.frequency.exponentialRampToValueAtTime(kind === 'h' ? 620 : 480, t + .09);
+    g.gain.setValueAtTime(.0001, t);
+    g.gain.exponentialRampToValueAtTime(.12, t + .008);
+    g.gain.exponentialRampToValueAtTime(.0001, t + .13);
+    o.connect(g); g.connect(ac.destination);
+    o.start(t); o.stop(t + .15);
+  }catch(e){}
+}
+
+/* --- 采样：按对数间隔记录频率点 --- */
+function sampleInterval(n){
+  if(n <= 100) return 1;
+  if(n <= 1000) return 5;
+  if(n <= 10000) return 50;
+  if(n <= 100000) return 500;
+  return 5000;
+}
+function pushPoint(){
+  S.points.push({ n:S.n, f:S.heads / S.n });
+  if(S.points.length > 3000) S.points = S.points.filter((_, i) => i % 2 === 0);
+}
+
+/* --- 一次"真正"的抛掷：独立、等可能 --- */
+function doFlips(k){
+  for(let i = 0; i < k; i++){
+    S.n++;
+    if(Math.random() < 0.5) S.heads++;
+    const iv = sampleInterval(S.n);
+    if(S.n % iv === 0) pushPoint();
+  }
+}
+
+/* --- UI 更新 --- */
+function fmtInt(x){ return x.toLocaleString('en-US'); }
+function updateStats(){
+  $('sN').textContent = fmtInt(S.n);
+  $('sM').textContent = fmtInt(S.heads);
+  if(S.n === 0){
+    $('sF').textContent = '—';
+    $('sD').textContent = '—';
+  } else {
+    const f = S.heads / S.n, d = f - 0.5;
+    $('sF').textContent = f.toFixed(6);
+    $('sD').textContent = (d >= 0 ? '+' : '−') + Math.abs(d).toFixed(6);
+  }
+  requestChart();
+}
+function setFlag(isHeads){
+  flagEl.className = 'flag show ' + (isHeads ? 'heads' : 'tails');
+  flagEl.textContent = isHeads ? '正面朝上 ✓' : '反面朝上 ✓';
+}
+
+/* --- 图表 --- */
+const RANGES = [
+  [1, 0, 1], [30, .02, .98], [300, .15, .85], [3000, .32, .68],
+  [30000, .44, .56], [300000, .482, .518], [3e6, .492, .508]
+];
+function targetRange(n){
+  if(n <= 1) return [0, 1];
+  for(let i = 1; i < RANGES.length; i++){
+    if(n <= RANGES[i][0]){
+      const [n0, a0, b0] = RANGES[i - 1], [n1, a1, b1] = RANGES[i];
+      const t = (Math.log10(n) - Math.log10(n0)) / (Math.log10(n1) - Math.log10(n0));
+      const e = t * t * (3 - 2 * t);
+      return [a0 + (a1 - a0) * e, b0 + (b1 - b0) * e];
+    }
+  }
+  return [.492, .508];
+}
+function niceXMax(n){
+  if(n <= 10) return 10;
+  const p = Math.pow(10, Math.floor(Math.log10(n)));
+  const m = n / p;
+  const step = m <= 1.2 ? 1.2 : m <= 2 ? 2 : m <= 3 ? 3 : m <= 5 ? 5 : m <= 7.5 ? 7.5 : 10;
+  return Math.max(10, Math.round(step * p));
+}
+function drawChart(){
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const w = canvas.clientWidth || 600, h = canvas.clientHeight || 270;
+  if(canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)){
+    canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+  }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+
+  const P = { l:58, r:18, t:14, b:46 };
+  const iw = Math.max(10, w - P.l - P.r), ih = Math.max(10, h - P.t - P.b);
+
+  // y 轴范围（随 n 自动"放大"，与帧率无关的平滑过渡）
+  const now = performance.now();
+  const dt = view.t ? Math.min(140, now - view.t) : 999;
+  view.t = now;
+  const tr = targetRange(S.n);
+  if(S.snap){ view.y0 = tr[0]; view.y1 = tr[1]; S.snap = false; }
+  const k = 1 - Math.exp(-dt / 190);
+  view.y0 += (tr[0] - view.y0) * k;
+  view.y1 += (tr[1] - view.y1) * k;
+  const settled = Math.abs(tr[0] - view.y0) < 2e-4 && Math.abs(tr[1] - view.y1) < 2e-4;
+  const y0 = view.y0, y1 = view.y1;
+  const Y = v => P.t + ih - (v - y0) / (y1 - y0) * ih;
+
+  const xMax = niceXMax(Math.max(S.n, 10));
+  const X = n => P.l + n / xMax * iw;
+
+  // 网格
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = '#eef2f8';
+  ctx.fillStyle = '#93a0b3';
+  ctx.font = '11.5px system-ui,"Microsoft YaHei",sans-serif';
+  for(let i = 0; i <= 4; i++){
+    const v = y0 + (y1 - y0) * i / 4, y = Y(v);
+    ctx.beginPath(); ctx.moveTo(P.l, y); ctx.lineTo(P.l + iw, y); ctx.stroke();
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    ctx.fillText(v.toFixed(3), P.l - 8, y);
+  }
+  for(let i = 0; i <= 5; i++){
+    const n = xMax * i / 5, x = X(n);
+    ctx.beginPath(); ctx.moveTo(x, P.t); ctx.lineTo(x, P.t + ih); ctx.stroke();
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.fillText(n >= 10000 ? (n / 10000) + '万' : String(Math.round(n)), x, P.t + ih + 6);
+  }
+  // 坐标轴
+  ctx.strokeStyle = '#dbe3ef';
+  ctx.beginPath(); ctx.moveTo(P.l, P.t); ctx.lineTo(P.l, P.t + ih); ctx.lineTo(P.l + iw, P.t + ih); ctx.stroke();
+  ctx.fillStyle = '#93a0b3'; ctx.font = '11px system-ui,"Microsoft YaHei",sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  ctx.fillText('抛掷次数 n', P.l + iw / 2, P.t + ih + 24);
+
+  // 0.5 参考线
+  const yHalf = Y(0.5);
+  ctx.save();
+  ctx.setLineDash([5, 5]); ctx.strokeStyle = '#e0453a'; ctx.lineWidth = 1.6;
+  ctx.beginPath(); ctx.moveTo(P.l, yHalf); ctx.lineTo(P.l + iw, yHalf); ctx.stroke();
+  ctx.restore();
+  ctx.fillStyle = '#e0453a'; ctx.font = '700 11.5px system-ui,"Microsoft YaHei",sans-serif';
+  ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+  ctx.fillText('P = 0.5', P.l + 5, yHalf - 4);
+
+  const pts = S.points;
+  if(pts.length){
+    // 频率与 0.5 之间的"偏差面积"
+    ctx.beginPath();
+    ctx.moveTo(X(pts[0].n), yHalf);
+    for(const p of pts) ctx.lineTo(X(p.n), Y(p.f));
+    ctx.lineTo(X(pts[pts.length - 1].n), yHalf);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(47,111,237,.10)';
+    ctx.fill();
+
+    // 频率折线
+    ctx.beginPath();
+    pts.forEach((p, i) => { const x = X(p.n), y = Y(p.f); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
+    ctx.strokeStyle = '#2f6fed'; ctx.lineWidth = 2; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    ctx.stroke();
+
+    // 当前点
+    const last = pts[pts.length - 1];
+    const lx = X(last.n), ly = Y(last.f);
+    ctx.beginPath(); ctx.arc(lx, ly, 5, 0, Math.PI * 2);
+    ctx.fillStyle = '#fff'; ctx.fill();
+    ctx.lineWidth = 2.5; ctx.strokeStyle = '#2f6fed'; ctx.stroke();
+
+    // 当前值标签
+    const txt = last.f.toFixed(4);
+    ctx.font = '700 12px ui-monospace,Consolas,monospace';
+    const tw = ctx.measureText(txt).width;
+    let bx = lx + 10, by = ly - 22;
+    if(bx + tw + 12 > P.l + iw) bx = lx - tw - 22;
+    if(by < P.t + 2) by = ly + 12;
+    ctx.fillStyle = 'rgba(255,255,255,.94)';
+    ctx.strokeStyle = '#dbe6fb'; ctx.lineWidth = 1;
+    ctx.beginPath();
+    const r = 6;
+    ctx.moveTo(bx + r, by); ctx.lineTo(bx + tw + 10 - r, by);
+    ctx.quadraticCurveTo(bx + tw + 10, by, bx + tw + 10, by + r);
+    ctx.lineTo(bx + tw + 10, by + 17 - r);
+    ctx.quadraticCurveTo(bx + tw + 10, by + 17, bx + tw + 10 - r, by + 17);
+    ctx.lineTo(bx + r, by + 17);
+    ctx.quadraticCurveTo(bx, by + 17, bx, by + 17 - r);
+    ctx.lineTo(bx, by + r);
+    ctx.quadraticCurveTo(bx, by, bx + r, by);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#2f6fed'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.font = '700 12px ui-monospace,Consolas,monospace';
+    ctx.fillText(txt, bx + 5, by + 9);
+  } else {
+    ctx.fillStyle = '#aab4c4'; ctx.font = '13px system-ui,"Microsoft YaHei",sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('抛掷后，频率折线会在这里出现', P.l + iw / 2, P.t + ih / 2);
+  }
+  $('yrange').textContent = '纵轴 ' + y0.toFixed(3) + ' ~ ' + y1.toFixed(3);
+  return settled;
+}
+// 按需重绘：状态一变就同步画一帧，之后再跟随若干动画帧把 y 轴平滑到位
+let chartActive = false;
+function requestChart(){
+  drawChart();
+  if(!chartActive){ chartActive = true; requestAnimationFrame(chartLoop); }
+}
+function chartLoop(){
+  const settled = drawChart();
+  if(settled && !S.busy && !S.spinning && !S.auto){ chartActive = false; return; }
+  requestAnimationFrame(chartLoop);
+}
+
+/* --- 整批抛掷（带进度动画；用 setTimeout 驱动，保证任何环境下都能推进） --- */
+let gen = 0;                    // 每次重置递增，作废弃令牌
+function runBatch(total, done){
+  if(S.busy || S.spinning) return;
+  const g = gen;
+  S.busy = true;
+  setControlsEnabled(false);
+
+  holderEl.classList.remove('hop');
+  void holderEl.offsetWidth;
+  holderEl.classList.add('hop');
+  coinEl.classList.add('spin-fast');
+  rx += 720 * Math.ceil(Math.log10(Math.max(total, 10)));
+  coinEl.style.transform = 'rotateX(' + rx + 'deg)';
+  setTimeout(() => coinEl.classList.remove('spin-fast'), 520);
+
+  const t0 = performance.now();
+  const dur = total >= 100000 ? 900 : total >= 10000 ? 700 : total >= 1000 ? 520 : 320;
+  let doneCount = 0;
+
+  function frame(){
+    if(g !== gen){ S.busy = false; setControlsEnabled(true); return; }
+    const prog = Math.min(1, (performance.now() - t0) / dur);
+    let togo = Math.floor(total * easeOut(prog)) - doneCount;
+    if(togo <= 0 && doneCount < total) togo = Math.min(Math.max(1, Math.floor(total / 100)), total - doneCount);
+    if(togo > 0){
+      doFlips(togo);
+      doneCount += togo;
+      updateStats();
+    }
+    if(doneCount < total){
+      setTimeout(frame, 16);
+    } else {
+      const ms = performance.now() - t0;
+      S.busy = false;
+      setControlsEnabled(true);
+      updateTip(total, ms);
+      if(done) done(ms);
+    }
+  }
+  frame();
+}
+function easeOut(t){ return 1 - Math.pow(1 - t, 2.2); }
+
+/* --- 单次抛掷（带翻转动画） --- */
+function singleFlip(cb){
+  if(S.busy || S.spinning) return;
+  const g = gen;
+  S.spinning = true;
+  $('btnFlip').disabled = true;
+  const isHeads = Math.random() < 0.5;
+
+  holderEl.classList.remove('hop'); void holderEl.offsetWidth; holderEl.classList.add('hop');
+  // 让硬币每次至少转两圈；落定后 rx 为 360 的整数倍时＝正面朝前
+  // 落定后：rx ≡ 0(mod 360) 见「正」；rx ≡ 180(mod 360) 见「反」
+  const base = Math.ceil((rx + 720) / 360) * 360;
+  rx = base + (isHeads ? 0 : 180);
+  coinEl.style.transform = 'rotateY(0deg) rotateX(' + rx + 'deg)';
+
+  setTimeout(() => {
+    if(g !== gen) return;
+    S.n++; if(isHeads) S.heads++;
+    const iv = sampleInterval(S.n);
+    if(S.n % iv === 0 || S.n === 1) pushPoint();
+    rushPoint();
+    updateStats(); tick(isHeads ? 'h' : 't'); setFlag(isHeads);
+    updateTip();
+    S.spinning = false;
+    $('btnFlip').disabled = false;
+    if(cb) cb(isHeads);
+  }, 780);
+}
+let flagTimer = null;
+function rushPoint(){ if(flagTimer) clearTimeout(flagTimer); flagTimer = setTimeout(() => flagEl.classList.remove('show'), 1600); }
+
+/* --- 提示语 --- */
+function updateTip(batch, ms){
+  const el = $('tip');
+  if(S.n === 0){
+    el.innerHTML = '点击「抛一次」开始。观察红色的 <b>P = 0.5</b> 参考线与蓝色频率折线的关系。';
+    return;
+  }
+  const f = S.heads / S.n, d = Math.abs(f - 0.5);
+  if(batch && ms){
+    const speed = Math.round(batch / (ms / 1000));
+    el.innerHTML = `本次连抛 <b>${fmtInt(batch)}</b> 次，仅用 <b>${ms.toFixed(0)} 毫秒</b>（约每秒 ${fmtInt(speed)} 次）。
+      此刻 <b>f = ${f.toFixed(6)}</b>，偏离 0.5 约 <b>${d.toFixed(6)}</b>。
+      ${batch >= 1000000 ? '同样的试验，蒲丰用手抛了 4040 次，皮尔逊抛了 24000 次。' : ''}`;
+  } else {
+    el.innerHTML = `已抛 <b>${fmtInt(S.n)}</b> 次，正面 <b>${fmtInt(S.heads)}</b> 次，
+      <b>f = ${f.toFixed(6)}</b>，偏离 0.5 约 <b>${d.toFixed(6)}</b>。`;
+  }
+}
+function setControlsEnabled(on){
+  document.querySelectorAll('.batch button').forEach(b => b.disabled = !on);
+  $('btnFlip').disabled = !on;
+}
+function reset(){
+  gen++;                                  // 作废所有在途的抛掷/批量动画
+  S.busy = false; S.spinning = false;
+  S.auto = false;
+  const ba = $('btnAuto');
+  ba.textContent = '▶ 自动连抛'; ba.classList.remove('primary');
+  setControlsEnabled(true);
+  S.n = 0; S.heads = 0; S.points = []; S.snap = true;
+  view.y0 = 0; view.y1 = 1; view.t = 0;
+  if(flagTimer) clearTimeout(flagTimer);
+  flagEl.classList.remove('show');
+  updateStats(); updateTip();
+}
+
+/* --- 按钮绑定 --- */
+$('btnFlip').addEventListener('click', () => singleFlip());
+document.querySelectorAll('.batch button').forEach(b => {
+  b.addEventListener('click', () => runBatch(parseInt(b.dataset.n, 10)));
+});
+$('btnReset').addEventListener('click', reset);
+$('btnSound').addEventListener('click', function(){
+  S.sound = !S.sound;
+  this.textContent = S.sound ? '🔊 音效：开' : '🔇 音效：关';
+  this.setAttribute('aria-pressed', String(S.sound));
+});
+$('btnAuto').addEventListener('click', function(){
+  S.auto = !S.auto;
+  this.textContent = S.auto ? '⏸ 暂停连抛' : '▶ 自动连抛';
+  this.classList.toggle('primary', S.auto);
+  if(S.auto) autoStep();
+});
+function autoStep(){
+  if(!S.auto) return;
+  singleFlip();
+  setTimeout(() => { if(S.auto) autoStep(); }, 300);
+}
+
+/* =========================================================
+   3. 环节导航（一次只呈现一个板块）
+   ========================================================= */
+const TABS = ['sim', 'rec', 'sum'];
+const TITLES = { sim:'抛硬币模拟器', rec:'数学家的记录 · 追问与验证', sum:'师生小结' };
+const BASE_TITLE = document.title;
+let curTab = 'sim';
+
+function showTab(key, opts){
+  if(TABS.indexOf(key) < 0) key = 'sim';
+  curTab = key;
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + key));
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === key));
+  document.title = key === 'sim' ? BASE_TITLE : TITLES[key] + ' · 抛硬币模拟器';
+  if(location.hash !== '#' + key){
+    try{ history.replaceState(null, '', '#' + key); }catch(err){ location.hash = key; }
+  }
+  if(!(opts && opts.keepScroll)) window.scrollTo({ top:0, behavior:'smooth' });
+  if(key === 'sim'){
+    // 面板刚从隐藏变可见，需要重新量尺寸并重绘
+    requestChart();
+    setTimeout(requestChart, 80);
+  }
+}
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => showTab(t.dataset.tab));
+});
+document.querySelectorAll('[data-go]').forEach(b => {
+  b.addEventListener('click', () => showTab(b.dataset.go));
+});
+
+document.addEventListener('keydown', e => {
+  if(e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  const i = TABS.indexOf(curTab);
+  if(e.key >= '1' && e.key <= String(TABS.length)){ showTab(TABS[+e.key - 1]); return; }
+  if(e.key === 'ArrowRight'){ showTab(TABS[(i + 1) % TABS.length]); return; }
+  if(e.key === 'ArrowLeft'){ showTab(TABS[(i - 1 + TABS.length) % TABS.length]); return; }
+  if(e.code === 'Space'){
+    e.preventDefault();
+    if(curTab !== 'sim') showTab('sim', { keepScroll:true });
+    singleFlip();
+    return;
+  }
+  if(e.key === 'r' || e.key === 'R') reset();
+});
+
+/* =========================================================
+   3. 追问
+   ========================================================= */
+document.querySelectorAll('[data-reveal]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const body = $(btn.dataset.reveal + 'body');
+    body.classList.toggle('show');
+    btn.textContent = body.classList.contains('show') ? '收起' : '显示问题与验证';
+    if(body.classList.contains('show')){
+      const v = $(btn.dataset.reveal === 'q1' ? 'v1' : 'v2');
+      if(v.dataset.seen) v.classList.add('show');
+    }
+  });
+});
+
+/* --- 追问1：重做 24000 次 --- */
+const runs = [];
+const STRIP_LO = 0.4950, STRIP_HI = 0.5050;
+function stripLeft(f){
+  const p = (f - STRIP_LO) / (STRIP_HI - STRIP_LO) * 100;
+  return Math.max(1, Math.min(99, p));
+}
+$('pearLine').style.left = stripLeft(0.5005) + '%';
+$('pearLbl').style.left = stripLeft(0.5005) + '%';
+
+function simPearson(){
+  let m = 0;
+  for(let i = 0; i < 24000; i++) if(Math.random() < 0.5) m++;
+  return m / 24000;
+}
+function renderRuns(){
+  const list = $('runList'), strip = $('strip');
+  list.innerHTML = '';
+  strip.querySelectorAll('.dot').forEach(d => d.remove());
+  runs.forEach((f, i) => {
+    const closer = Math.abs(f - 0.5) < Math.abs(0.5005 - 0.5);
+    const d = document.createElement('div');
+    d.className = 'runrow';
+    d.innerHTML = `<span class="idx">第 ${i + 1} 次</span>
+      <span class="fv">f = ${f.toFixed(5)}</span>
+      <span class="dv">|f − 0.5| = ${Math.abs(f - 0.5).toFixed(5)}</span>
+      <span style="color:${closer ? 'var(--green)' : 'var(--red)'};font-weight:600">
+        ${closer ? '比 0.5005 更接近 0.5' : '反而离 0.5 更远'}</span>`;
+    list.appendChild(d);
+
+    const dot = document.createElement('span');
+    dot.className = 'dot';
+    dot.style.left = stripLeft(f) + '%';
+    dot.style.top = '36px';
+    dot.title = f.toFixed(5);
+    strip.appendChild(dot);
+  });
+  const closerN = runs.filter(f => Math.abs(f - 0.5) < 0.0005).length;
+  $('runSummary').innerHTML = runs.length
+    ? `共重做 <b>${runs.length}</b> 次：其中 <b>${closerN}</b> 次比皮尔逊的 0.5005 更接近 0.5，
+       <b>${runs.length - closerN}</b> 次不如它。`
+    : '';
+  if(runs.length){
+    const v = $('v1');
+    v.dataset.seen = '1';
+    v.innerHTML = `<b>结论：不一定。</b>0.5005 距离 0.5 只有 0.0005，几乎"贴"在 0.5 上，
+      再抛 24000 次的新频率可能略高于它，也可能略低于它——这正是<b>随机性</b>。
+      <br>频率会随着试验次数的增加而<b>稳定</b>在 0.5 附近，但"这一次一定比上一次更接近"不是规律。`;
+    if($('q1body').classList.contains('show')) v.classList.add('show');
+  } else {
+    $('v1').classList.remove('show'); $('v1').dataset.seen = '';
+  }
+}
+$('btnRun1').addEventListener('click', () => { runs.push(simPearson()); renderRuns(); });
+$('btnRun10').addEventListener('click', () => { for(let i = 0; i < 10; i++) runs.push(simPearson()); renderRuns(); });
+$('btnClearRuns').addEventListener('click', () => { runs.length = 0; renderRuns(); });
+$('btnToSim').addEventListener('click', () => {
+  showTab('sim');
+  setTimeout(() => { reset(); setTimeout(() => runBatch(24000), 140); }, 280);
+});
+
+/* --- 追问2：第 24001 次 --- */
+const seq = [];
+function updateSeq(){
+  const box = $('chips24001');
+  box.innerHTML = seq.map(r => `<span class="chip ${r ? 'h' : 't'}">${r ? '正' : '反'}</span>`).join('');
+  const h = seq.filter(x => x).length, t = seq.length - h;
+  $('sum24001').innerHTML = seq.length
+    ? `本轮已抛 <b>${seq.length}</b> 次：正面 <b>${h}</b> 次，反面 <b>${t}</b> 次。
+       注意——<b>前面每一次的结果都不会改变下一次的可能性</b>，每一次正面朝上的概率仍然是 1/2。`
+    : '';
+}
+function flip24001(){
+  const r = Math.random() < 0.5;
+  seq.push(r);
+  updateSeq();
+  const v = $('v2');
+  v.dataset.seen = '1';
+  v.innerHTML = `这一次是<b>${r ? '正面' : '反面'}</b>朝上。可能性始终是 <b>1/2</b>：
+    硬币没有"记忆"，前面 24000 次的 12012 次正面、11988 次反面，<b>都不会让第 24001 次正面朝上的可能性变大或变小</b>。
+    某个事件的概率是这个事件本身的属性，与它以前发生过多少次无关。`;
+  if($('q2body').classList.contains('show')) v.classList.add('show');
+}
+$('btnFlip24001').addEventListener('click', flip24001);
+$('btnFlipMany').addEventListener('click', () => { for(let i = 0; i < 20; i++) seq.push(Math.random() < 0.5); updateSeq(); });
+$('btnClear24001').addEventListener('click', () => { seq.length = 0; updateSeq(); $('v2').classList.remove('show'); });
+
+/* --- 尺寸变化 & 初始化 --- */
+if(window.ResizeObserver){
+  new ResizeObserver(() => { requestChart(); }).observe(canvas);
+}
+window.addEventListener('resize', () => { requestChart(); });
+
+buildRecords();
+renderTable();
+renderChart();
+updateChartHint();
+updateStats();
+updateTip();
+renderRuns();
+updateSeq();
+showTab((location.hash || '#sim').slice(1), { keepScroll: true });
+</script>
+</body>
+</html>
